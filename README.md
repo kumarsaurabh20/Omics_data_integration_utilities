@@ -1,6 +1,6 @@
 # Omics Data Integration Uutilities
 
-## DriverNer
+## DriverNet
 https://www.bioconductor.org/packages/release/bioc/html/DriverNet.html
 
 ## MethylMix
