@@ -12,9 +12,9 @@ def get_args():
     parser = argparse.ArgumentParser(description=printStartMessage(), add_help=False)
     optional = parser.add_argument_group('Optional arguments')
 
-    rr = parser.add_argument_group('Database', 'MassTransition file should be available from RR and MetaNetX db')
+    rr = parser.add_argument_group('Reaction Rules database', 'MassTransition file should be available from RR and MetaNetX db')
     npdb = parser.add_argument_group('NPDB structural database', 'Mass signature file queried to NPDB database')
-    corr = parser.add_argument_group('Correlation between omics', 'Correlation of Metabolomics and Transcriptomics data')
+    corr = parser.add_argument_group('Omics correlation', 'Correlation of Metabolomics and Transcriptomics data')
     predict = parser.add_argument_group('Predictions', 'Predictions of pathways')
 
     optional.add_argument("-h", "--help", action="help", help="show this help message and exit")
