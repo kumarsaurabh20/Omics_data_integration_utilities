@@ -12,10 +12,10 @@ def get_args():
     parser = argparse.ArgumentParser(description=printStartMessage(), add_help=False)
     optional = parser.add_argument_group('Optional arguments')
 
-    rr = parser.add_argument_group('Reaction Rules database', 'MassTransition file should be available from RR and MetaNetX db')
-    npdb = parser.add_argument_group('NPDB structural database', 'Mass signature file queried to NPDB database')
+    rr = parser.add_argument_group('Reaction Rules database', 'MassTransitions estimate from RetroRules and MetaNetX DB')
+    npdb = parser.add_argument_group('NPDB structural database', 'Mass signature file queried to NPDB')
     corr = parser.add_argument_group('Omics correlation', 'Correlation of Metabolomics and Transcriptomics data')
-    predict = parser.add_argument_group('Predictions', 'Predictions of pathways')
+    predict = parser.add_argument_group('Predictions', 'Prediction of pathways')
 
     optional.add_argument("-h", "--help", action="help", help="show this help message and exit")
     optional.add_argument("-k", "--keep", help="keep all temporary files", action="store_true")
@@ -96,7 +96,7 @@ def checkFormatDatabases():
 
 def printStartMessage():
     print(
-	"""                        
+	"""                       
 	 __  __ _____    _    _   _ _              _     
 	|  \/  | ____|  / \  | \ | | |_ ___   ___ | |___ 
 	| |\/| |  _|   / _ \ |  \| | __/ _ \ / _ \| / __|
