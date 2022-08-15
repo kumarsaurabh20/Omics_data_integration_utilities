@@ -47,7 +47,6 @@ def load_correlations(Options):
         correlation_df = correlation_df[abs(correlation_df['correlation']) >= Options.corr_cutoff]
     if not Options.corr_p_cutoff == 1:
         correlation_df = correlation_df[abs(correlation_df['P']) <= Options.corr_p_cutoff]
-    print(correlation_df)
     return correlation_df
 
 
@@ -64,23 +63,25 @@ def load_enzyme_input(Options):
 
     if Options.gene_annotation_file:
         gizmos.print_milestone('Loading gene annotations...', Options.verbose)
-        print(Options.gene_annotation_file)
         annotations_df = pd.read_csv(Options.gene_annotation_file, index_col=None)
-        print("###### ANNOTATIONS DF ######")
-        print(annotations_df.dtypes)
 
         annotations_df = annotations_df.rename(columns={annotations_df.columns[0]: 'gene', annotations_df.columns[1]: 'enzyme_pfams'})
         enzyme_pfams_list = annotations_df.enzyme_pfams.apply(gizmos.pd_to_list, separator=';')
         # expand gene annotations so there's one pfam per line (but we keep the "pfam" annotation that have them all)
         lens = [len(item) for item in enzyme_pfams_list]
         new_df = pd.DataFrame({'gene': np.repeat(annotations_df.gene, lens), 'pfam_rule': np.concatenate(enzyme_pfams_list)})
-        print("###### NEW DF ######")
-        print(new_df.dtypes)
+
+        # Kumar 07/08/2022
+        # This step generates a df with 3 columns
+        # gene;enzyme_pfams;pfam_rule
+        # It makes one gene - one pfam entry
         annotations_df = pd.merge(annotations_df, new_df, how='outer')
+
         del enzyme_pfams_list, new_df
     else:
         annotations_df = pd.DataFrame()
 
+    # Kumar 07/08/2022
     # PFAM - RR
     # reaction_id, uniprot_id, Pfams, KO, rhea_id_reaction, kegg_id_reaction, rhea_confirmation, kegg_confirmation,
     #  KO_prediction
@@ -89,8 +90,6 @@ def load_enzyme_input(Options):
         pfam_rules_df = pd.read_csv(Options.pfam_RR_annotation_file, index_col=None)
         pfam_rules_df = pfam_rules_df.rename(columns={pfam_rules_df.columns[1]: 'uniprot_id', pfam_rules_df.columns[2]: 'uniprot_enzyme_pfams_acc'})
         pfam_rules_df['reaction_id'] = pfam_rules_df.reaction_id.astype('str')
-        print("###### PFAM RULES DF ######")
-        print(pfam_rules_df.dtypes)
 
         # filter type of anotations (strict, medium, loose)
         if Options.pfam_RR_annotation_dataset == 'strict':
@@ -109,7 +108,6 @@ def load_enzyme_input(Options):
 
         pfam_rules_df['uniprot_enzyme_pfams_list'] = [[k for k in row if k in pfam_dict.index] for row in uniprot_enzyme_pfams_acc_list]
         pfam_rules_df['uniprot_enzyme_pfams'] = pfam_rules_df.uniprot_enzyme_pfams_list.apply(';'.join)
-        print(pfam_rules_df)
 
         # Expand df so there is only one pfam per row.
         lens = [len(item) for item in pfam_rules_df.uniprot_enzyme_pfams_list]
@@ -204,19 +202,24 @@ def get_transitions(masses_df, unique_transitions):
     """
     path_transitions = np.vstack(masses_df.mm.to_numpy()) + unique_transitions
     path_transitions = np.round(path_transitions, Options.decimals)
+
+    # 11/08/2022 Kumar
+    # Script is consuming too much memory at this particular step because of the
+    # shear size of the data file (masses_df: 2.18 million rows)
+    # with a smaller dataset the script is working fine.
     path_transitions_df = pd.DataFrame(path_transitions, index=masses_df.index, columns=[str(n) for n in unique_transitions])
+
     #path_transitions_df = pd.DataFrame(path_transitions, index=masses_df.index)
     path_transitions_df = path_transitions_df.reset_index(drop=False)
     path_transitions_df = pd.melt(path_transitions_df, id_vars='ms_name', var_name='mass_transition', value_name='mm_round')
     path_transitions_df.rename(columns={'ms_name': 'substrate'}, inplace=True)
-    print(path_transitions_df)
+
     # keep only products that are substrate by merging with masses
     path_transitions_df = pd.merge(path_transitions_df, masses_df.reset_index(drop=False), how='inner')
     # ^^ on mm_round
     path_transitions_df.rename(columns={'ms_name': 'product'}, inplace=True)
     path_transitions_df = path_transitions_df.astype({'mass_transition': 'float'})
     path_transitions_df['mass_transition_round'] = path_transitions_df.mass_transition.apply(lambda x: np.round(x, Options.decimals))
-    print(path_transitions_df)
 
     return path_transitions_df[['substrate', 'product', 'mass_transition_round']].drop_duplicates()
 
@@ -238,11 +241,6 @@ def filter_transitions_with_corr(transitions_df):
     enzyme_df = enzyme_df[['reaction_id', 'ms_name', 'gene']].drop_duplicates()
 
     # merge on ms_name, reaction_id
-    print("###### ENZYME DF ######")
-    print(enzyme_df.dtypes)
-
-    print("###### TRANSITIONS DF ######")
-    print(transitions_df.dtypes)
     try:
         merged_df = pd.merge(enzyme_df, transitions_df)
     except:
@@ -262,18 +260,24 @@ def main():
     # INPUT
     gizmos.print_milestone('Loading data...', Options.verbose)
 
+    # Kumar 07/08/2022
+    # mass signatures file
+    # Output from queryMassNPDB_mod.py. It is not a query mass signature file. It contain repetitive mass features with
+    # multiple structure's mm associated.
+    # Test Wisecaver data file has ~2.8 million redundant mass features.
     masses_df = pd.read_csv(Options.mass_signatures_file, index_col=None, header=0)
-    print(masses_df)
-    masses_df = masses_df.rename(columns={masses_df.columns[0]: 'ms_name',
-                                          masses_df.columns[1]: 'mz',
-                                          masses_df.columns[2]: 'mm'}).set_index('ms_name')
+    #
+    masses_df = masses_df.rename(columns={masses_df.columns[0]: 'ms_name', masses_df.columns[1]: 'mz', masses_df.columns[2]: 'mm'}).set_index('ms_name')
+    #
     if 'mm_round' not in masses_df:
         masses_df['mm_round'] = round(masses_df.mm, Options.decimals)
-    print(masses_df)
-    transitions_df = pd.read_csv(Options.mass_transitions_file, index_col=None)
 
+    # Kumar 07/08/2022
+    # This file has transitions from RetroRules database
+    transitions_df = pd.read_csv(Options.mass_transitions_file, index_col=None)
     transitions_df['mass_transition_round_abs'] = transitions_df.mass_transition_round.apply(abs)
 
+    # Kumar 07/08/2022
     # reaction_id is used to merge with the same from enzyme table. The dtypes are different in both the df
     # Therefore changing the dtype here to 'str'
     transitions_df['reaction_id'] = transitions_df.reaction_id.astype('str')
@@ -284,13 +288,22 @@ def main():
     del transitions_df['mass_transition_round_abs']
 
     # FILTER TRANSITIONS WITH CORRELATION
+    # Kumar 02/08/2022
+    # This step merges all the PFAM annotations and omics correlations and filters out unwanted tarnsitions.
     if Options.pfam_RR_annotation_file and Options.gene_annotation_file and Options.correlation_file:
         transitions_df = filter_transitions_with_corr(transitions_df)
+    print(transitions_df)
 
     # NO GHOSTS
+    # Kumar 27/07/2022
+    # Need to undersatnd about ghosts metabolites? Not very clear from the codes
     gizmos.print_milestone('Identifying transitions...', Options.verbose)
     # todo use mass_transition or round?
     unique_transitions = transitions_df.mass_transition.unique()
+
+    # Kumar 07/08/2022
+    # This step uses mass signature and unique transition from the transition file to filter and format mass signatures
+    # based on transitions. Formating requires melting of data in to a particular format.
     path_transitions_df = get_transitions(masses_df, unique_transitions)
 
     # GHOSTS
