@@ -59,6 +59,7 @@ def get_args():
 
 
 def checkArguments():
+
     global args
 
     if args['rr_db'] == None:
@@ -72,13 +73,12 @@ def checkModules():
 
     reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
     installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
-    modules = ['numpy', 'pandas', 'multiprocessing', 'rdkit', 'scipy', 'matplotlib', 'seaborn', 'networkx']
+    modules = ['numpy', 'pandas', 'rdkit', 'scipy', 'matplotlib', 'seaborn', 'networkx']
     for each in modules:
         if each in installed_packages:
             pass
         else:
             print("{} module is not found in the environment!".format(each))
-            exit()
 
 def checkFormatDatabases():
 
@@ -92,23 +92,26 @@ def checkFormatDatabases():
             pass
         else:
             print("Format Database directory is not empty!")
-            exit()
 
 def printStartMessage():
     print(
-	"""                       
-	 __  __ _____    _    _   _ _              _     
-	|  \/  | ____|  / \  | \ | | |_ ___   ___ | |___ 
-	| |\/| |  _|   / _ \ |  \| | __/ _ \ / _ \| / __|
-	| |  | | |___ / ___ \| |\  | || (_) | (_) | \__ |
-	|_|  |_|_____/_/   \_\_| \_|\__\___/ \___/|_|___/
-	"""
+    """                       
+     __  __ _____    _    _   _ _              _     
+    |  \/  | ____|  / \  | \ | | |_ ___   ___ | |___ 
+    | |\/| |  _|   / _ \ |  \| | __/ _ \ / _ \| / __|
+    | |  | | |___ / ___ \| |\  | || (_) | (_) | \__ |
+    |_|  |_|_____/_/   \_\_| \_|\__\___/ \___/|_|___/
+    """
     )
     print("")
     print("MEANtools::Metabolite Anticipation tools")
-    print("Kumar Saurabh Singh (kumar.singh@wur.nl)")
-    print("Medema Lab (Dr. Marnix H. Medema), WUR")
+    print("Developer/Maintainer: Dr. Kumar Saurabh Singh")
+    print("Email: kumar.singh@wur.nl / k.s.singh@uu.nl")
+    print("Group Leader: Dr. Marnix H. Medema")
+    print("Email: marnix.medema@wur.nl")
+    print("Repository: https://git.wageningenur.nl/medema-group/meantools")
     print("")
+
 
 def convertTimeDeltaToReadableString(timeDelta):
     seconds = timeDelta.seconds
@@ -143,21 +146,22 @@ def main():
     startTime = datetime.datetime.now()
     global args
     args = vars(get_args())
-    #checkArguments()
-    printStartMessage()
-    #checkFormatDatabases()
+
+    return
 
 
 # Standard boilerplate to call the main() function to begin
 # the program.
 if __name__ == '__main__':
-    t0 = datetime.datetime.now()
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.stderr.write("\nCtrl-C pressed!		\n")
-    except IOError as e:
-        sys.stderr.write("I/O error({0}): {1}\n".format(e.errno, e.strerror))
 
-    dt = datetime.now() - t0
-    sys.stderr.write("#Time elapsed: %s\n" % dt)
+    try:
+        checkModules()
+    except:
+        print("Install the missing module(s)!")
+
+    try:
+        checkFormatDatabases()
+    except:
+        print("Something happend while searching for database folder!")
+
+    main()
